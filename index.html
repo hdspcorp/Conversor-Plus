@@ -31,7 +31,7 @@ header .note{
 .col-8 { grid-column: span 8; }
 .col-6 { grid-column: span 6; }
 .col-12 { grid-column: span 12; }
-    .card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; box-shadow:0 6px 20px rgba(0,0,0,.22); }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px; box-shadow:0 12px 32px rgba(0,0,0,.32); }
     .card h2 { margin:0 0 12px; font-size:18px; }
     label { display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
     input[type="number"], select, input[type="text"], textarea { width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:#121824; color:var(--fg); }
@@ -321,8 +321,8 @@ header .note{
   letter-spacing: .1px;
 }
 #searchPreview.editing{
-  outline:2px dashed #94A3B8;
-  background:#0f172a;
+  outline:2px dashed #475569;       /* tom mais neutro */
+  background:#121824;               /* fundo coerente com o tema */
 }
 
 /* realce do match */
@@ -365,11 +365,13 @@ mark{ background:#eab30833; border:1px solid #eab30855; border-radius:4px; paddi
   display:flex; align-items:center; justify-content:space-between;
   font-size:20px; letter-spacing:.2px; margin:0 0 12px 0; padding-bottom:8px; border-bottom:1px solid var(--border);
 }
+#viewPesquisa .card h2 > .row{ display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; }
 #viewPesquisa .preview-title{
+
   font-weight:800; font-size:15px; letter-spacing:.2px;
   padding:8px 12px; border:1px solid var(--border); border-radius:12px; background:#121824;
 }
-#viewPesquisa .preview-actions{ display:flex; flex-direction:column; gap:8px; align-items:flex-end; }
+#viewPesquisa .preview-actions{ display:flex; flex-direction:row; gap:10px; align-items:center; }
 #viewPesquisa .preview-actions .row .btn{ padding:10px 14px; border-radius:12px; min-width:140px; }
 #viewPesquisa .preview-actions .btn.btn-drive{ background:#60a5fa; color:#0b1016; border:1px solid #334155; }
 
@@ -385,8 +387,195 @@ mark{ background:#eab30833; border:1px solid #eab30855; border-radius:4px; paddi
 <script> if (window['pdfjsLib']) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js'; </script>
 <script src="https://unpkg.com/mammoth/mammoth.browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"></script>
+<!-- Shell + SideNav: mesmo padrão visual do Transmissor/Workspace -->
+<style id="shell-and-sidenav">
+  /* Container externo (casca) */
+  .app-frame{
+    width:min(1920px,92vw);
+    margin:24px auto;
+    padding:24px 24px 28px 96px; /* espaço para o menu lateral */
+    background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02)), var(--card);
+    border:4px solid var(--border);
+    border-radius:14px;
+    box-shadow:0 24px 64px rgba(0,0,0,.45);
+    position:relative;
+  }
+  /* Oculta o header original (DOM mantido p/ compatibilidade) */
+  header{ display:none !important; }
+
+  /* ===== Menu lateral (idêntico ao padrão) ===== */
+  .side-nav{
+    position:absolute; left:24px; top:24px; bottom:28px; z-index:10;
+    width:48px; padding:6px;
+    border:1px solid var(--border);
+    border-radius:12px;
+    background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)), var(--card);
+    box-shadow:0 14px 36px rgba(0,0,0,.35);
+    display:flex; flex-direction:column; align-items:center; justify-content:space-between; gap:12px;
+  }
+
+  .side-nav::after{
+    content:""; position:absolute; right:-6px; top:0; bottom:0; width:1px;
+    background:var(--border); border-radius:1px; opacity:.9; pointer-events:none;
+  }
+  .side-nav__group{ display:grid; gap:8px; justify-items:center; }
+  .sn-btn{
+    display:grid; place-items:center; width:40px; height:40px; margin:0 auto;
+    border:1px solid var(--border); border-radius:12px;
+    background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+    color:var(--fg); text-decoration:none; cursor:pointer;
+    transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+  }
+  .sn-btn:hover{ transform:translateY(-1px); box-shadow:0 10px 24px rgba(0,0,0,.35); border-color:rgba(255,255,255,.18); }
+  .sn-btn:focus{ outline:2px solid rgba(34,211,238,.25); outline-offset:2px; }
+  .sn-btn.active{ background:linear-gradient(90deg,#22d3ee,#60a5fa); border-color:transparent; color:#05121a; box-shadow:0 8px 24px rgba(0,0,0,.35); }
+  .sn-btn svg{ width:20px; height:20px; display:block; }
+  .sn-sep{ height:1px; background:var(--border); border-radius:1px; margin:4px 0; }
+  /* Dots de status na side-nav */
+  .sn-dot{ width:10px; height:10px; border-radius:50%; display:block; border:1px solid var(--border); background:#9aa4b2; }
+  .sn-dot.ok{ background:#16a34a; }
+  .sn-dot.err{ background:#ef4444; }
+  .sn-dot.idle{ background:#9aa4b2; }
+
+  /* “Clean”: cards um pouco menos arredondados/soltos (sem mexer em cores) */
+  .card{ border-radius:10px !important; padding:12px !important; box-shadow:0 12px 32px rgba(0,0,0,.32) !important; }
+
+  /* Esconde o FAB de ajuda flutuante (vamos usar o botão da barra) */
+  .help-fab{ display:none !important; }
+
+  @media (max-width:900px){
+    .side-nav{ display:none; }
+    .app-frame{ padding-left:24px !important; }
+  }
+</style>
+<!-- Fonte da assinatura (igual ao Workspace/Transmissor) -->
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&display=swap" rel="stylesheet">
+
+<!-- Overrides de padrão visual + topbar + barra fixa e equalização de alturas -->
+<style id="conversor-overrides">
+  :root{ --grad: linear-gradient(90deg,#22d3ee,#60a5fa); }
+
+  /* Container: expandir melhor no monitor e variação “sem menu” via classe */
+  .app-frame{ width:min(1920px,96vw) !important; }
+  .app-frame.no-sidenav{ padding-left:24px !important; }
+
+  /* Side-nav: dentro do container (mesmo padrão do Transmissor/Workspace) */
+  .side-nav{
+    position:absolute !important;
+    left:24px !important; top:24px !important; bottom:28px !important;
+  }
+
+  /* Topbar (abas + Drive + assinatura “Conversor”) */
+  .topbar{
+    position:sticky; top:0; z-index:5;
+    display:flex; align-items:center; gap:14px; justify-content:space-between;
+    margin:0 0 12px 0; padding:6px 8px 10px;
+    border-bottom:1px solid var(--border);
+    background:transparent;
+    backdrop-filter:none;
+  }
+
+  .topbar .brand{
+    font-family:'Caveat', cursive; font-size:28px; line-height:1;
+    background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent;
+    text-shadow: 0 2px 12px rgba(34,211,238,.18);
+  }
+  .topbar .tabs{ display:flex; gap:8px; align-items:center; }
+  .topbar .tabs .seg{
+    border-radius:14px; background:#121824; border:1px solid var(--border);
+    padding:8px 12px; box-shadow: 0 6px 18px rgba(0,0,0,.25);
+  }
+  .topbar .tabs .seg span{ font-size:14px; font-weight:600; color:var(--muted); letter-spacing:.2px; }
+  .topbar .tabs .seg.active{ border-color:#94A3B8; box-shadow: 0 8px 26px rgba(148,163,184,.22), inset 0 1px 0 rgba(255,255,255,.08); }
+  .topbar .tabs .seg.active span{ color:#e6edf7; background:transparent; -webkit-background-clip:initial; -webkit-text-fill-color:initial; }
+  .topbar .drive .btn{ padding:8px 12px; border-radius:10px; }
+
+  /* Botões no padrão dos outros apps (sem mudar semântica) */
+  .btn{ border:1px solid var(--border); border-radius:12px; background:var(--grad); color:#05121a; font-weight:700; }
+  .btn.ghost{ background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03)); color:var(--fg); }
+  .btn-drive{ background:#60a5fa; color:#0b1016; border:1px solid #334155; }
+
+  /* Pesquisa: duas colunas com alturas equivalentes e preview elástico */
+  #viewPesquisa .grid{ align-items:stretch; }
+  #viewPesquisa .card.col-4{ max-height: calc(100vh - 180px); overflow:auto; }
+  #viewPesquisa .preview-card{ display:flex; flex-direction:column; max-height: calc(100vh - 180px); }
+  #searchPreview{ flex:1; min-height:0; overflow:auto; }
+
+  /* Scrollbar (coerente com o tema, se não existir já) */
+  *{ scrollbar-width:thin; scrollbar-color: rgba(255,255,255,.22) #121824; }
+  ::-webkit-scrollbar{ width:10px; height:10px; }
+  ::-webkit-scrollbar-track{ background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02)), #121824; border:1px solid var(--border); border-radius:12px; }
+  ::-webkit-scrollbar-thumb{ background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06)); border:1px solid var(--border); border-radius:10px; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover{ background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.10)); }
+</style>
 </head>
 <body>
+<div class="app-frame">
+  <!-- Side Nav – atalhos de apps + abas do Conversor + ajuda -->
+  <nav class="side-nav" aria-label="Atalhos">
+    <div class="side-nav__group">
+      <!-- Apps -->
+      <a class="sn-btn" data-app="workspace" title="Workspace" href="#">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="3" y="3" width="8" height="8" rx="2" stroke="currentColor"></rect>
+          <rect x="13" y="3" width="8" height="8" rx="2" stroke="currentColor"></rect>
+          <rect x="3" y="13" width="8" height="8" rx="2" stroke="currentColor"></rect>
+          <rect x="13" y="13" width="8" height="8" rx="2" stroke="currentColor"></rect>
+        </svg>
+      </a>
+      <a class="sn-btn" data-app="conversor" title="Conversor" href="#">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4 7h8v4H4z" stroke="currentColor"></path>
+          <path d="M12 13h8v4h-8z" stroke="currentColor"></path>
+          <path d="M8 11v2m8-2v2" stroke="currentColor"></path>
+        </svg>
+      </a>
+      <a class="sn-btn" data-app="transmissor" title="Transmissor" href="#">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="2" stroke="currentColor"></circle>
+          <path d="M7 7a7 7 0 0 0 0 10" stroke="currentColor"></path>
+          <path d="M17 7a7 7 0 0 1 0 10" stroke="currentColor"></path>
+        </svg>
+      </a>
+    </div>
+
+    <div class="sn-sep" role="separator" aria-hidden="true"></div>
+
+    <!-- Status (mostrado apenas na aba PESQUISA) -->
+    <div class="side-nav__group" id="snStatusGroup">
+      <span class="sn-dot idle" id="snDriveDot"   title="Status do Drive"></span>
+      <span class="sn-dot idle" id="snImportDot"  title="Status de importação"></span>
+    </div>
+
+    <div class="sn-sep" role="separator" aria-hidden="true"></div>
+
+    <div class="side-nav__group">
+      <!-- Ajuda -->
+      <a class="sn-btn" data-app="ajuda" title="Ajuda" href="#">
+
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 17v.01M9.2 9a3 3 0 1 1 5.6 1.5c-.6.4-1 .9-1 1.5V14" stroke="currentColor" stroke-linecap="round"></path>
+          <circle cx="12" cy="12" r="9" stroke="currentColor"></circle>
+        </svg>
+      </a>
+    </div>
+  </nav>
+  <!-- Topbar unificado (abas + Drive + assinatura) -->
+  <div class="topbar" id="topbar">
+    <div class="brand">Conversor</div>
+
+    <div class="tabs" id="tabsBar">
+      <button class="seg" data-view="conversor"><span>Conversor</span></button>
+      <button class="seg" data-view="pesquisa"><span>Pesquisa</span></button>
+      <button class="seg" data-view="criacao"><span>Criação</span></button>
+    </div>
+
+    <div class="drive">
+      <button id="tbConnect"    class="btn btn-drive" type="button" title="Conectar ao Google Drive">Conectar</button>
+      <button id="tbDisconnect" class="btn ghost"     type="button" title="Encerrar sessão">Desconectar</button>
+    </div>
+  </div>
+
   <header>
     <h1>Conversor</h1>
 	<nav class="app-switcher" aria-label="Outros aplicativos">
@@ -425,15 +614,13 @@ mark{ background:#eab30833; border:1px solid #eab30855; border-radius:4px; paddi
 
       <!-- CONFIG -->
       <section class="card col-6">
-       <h2>Configuração</h2>
-
-<!-- 1) Modo de saída — “Gerar PACKS” como principal e default -->
-<label class="muted"></label>
-<div class="seg-wrap" style="margin-bottom:8px">
-  <label class="seg"><input type="radio" name="outmode" id="modePacks" checked><span>Gerar PACKS</span></label>
-  <label class="seg"><input type="radio" name="outmode" id="modeIndividual"><span>Converter para TXT (1:1)</span></label>
-</div>
-<small class="muted"></small>
+       <h2>
+         <span>Configuração</span>
+         <div class="seg-wrap" id="outmodeTop" style="margin-left:auto">
+           <label class="seg"><input type="radio" name="outmode" id="modePacks" checked><span>Gerar PACKS</span></label>
+           <label class="seg"><input type="radio" name="outmode" id="modeIndividual"><span>Converter para TXT (1:1)</span></label>
+         </div>
+       </h2>
 
 <!-- 2) Opções gerais -->
 <div class="row" style="margin-top:12px">
@@ -492,10 +679,14 @@ mark{ background:#eab30833; border:1px solid #eab30855; border-radius:4px; paddi
 	  
       <!-- ARQUIVOS -->
       <section class="card col-6">
-        <h2>Arquivos</h2>
-        <div class="row">
-          <button id="btnPickFiles" class="btn">Selecionar arquivos</button>
-          <button id="btnPickFolder" class="btn ghost">Selecionar pasta</button>
+        <h2>
+          <span>Arquivos</span>
+          <div class="row" style="gap:8px; margin-left:auto">
+            <button id="btnPickFiles" class="btn">Selecionar arquivos</button>
+            <button id="btnPickFolder" class="btn ghost">Selecionar pasta</button>
+          </div>
+        </h2>
+        <div class="row" style="margin-top:8px">
           <span class="pill">Suporta: .txt .md .csv .json .log .html .htm .pdf .docx</span>
         </div>
         <input id="fileInputFiles" type="file" multiple style="display:none" accept=".txt,.md,.csv,.json,.log,.html,.htm,.pdf,.docx,.doc" />
@@ -565,7 +756,38 @@ mark{ background:#eab30833; border:1px solid #eab30855; border-radius:4px; paddi
     <div class="grid">
     <!-- Coluna ESQUERDA (Resultados) -->
     <section class="card col-4 sticky">
-      <h2>Pesquisa & Resultados</h2>
+      <h2>
+        <span>Pesquisa &amp; Resultados</span>
+        <div class="row" style="gap:8px">
+          <!-- Lista de documentos (modal) -->
+          <button id="btnDocsModalOpen" class="sn-btn" title="Documentos importados" type="button" aria-label="Documentos importados">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 6h16v12H4z" stroke="currentColor"></path>
+              <path d="M8 9h8M8 12h8M8 15h5" stroke="currentColor"></path>
+            </svg>
+          </button>
+          <!-- Importar arquivos (arquivo com seta para cima) -->
+          <button id="btnPickFiles2" class="sn-btn" title="Importar arquivos" type="button" aria-label="Importar arquivos">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M6 4h9l3 3v13H6z" stroke="currentColor"/>
+              <path d="M12 16V9M9.5 11.5 12 9l2.5 2.5" stroke="currentColor"/>
+            </svg>
+          </button>
+          <!-- Importar pasta (pasta com seta para cima) -->
+          <button id="btnPickFolder2" class="sn-btn" title="Importar pasta" type="button" aria-label="Importar pasta">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M3 7h7l2 2h9v10H3z" stroke="currentColor"/>
+              <path d="M12 17v-5M10.5 13.5 12 12l1.5 1.5" stroke="currentColor"/>
+            </svg>
+          </button>
+          <!-- STATUS de importação (muda de cor) -->
+          <button id="btnImportStatus" class="sn-btn" title="Status de importação" type="button" aria-label="Status de importação" style="pointer-events:none;">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="6" stroke="currentColor"></circle>
+            </svg>
+          </button>
+        </div>
+      </h2>
 
         <div class="search-toolbar">
         <input id="searchInput" type="text" placeholder="Digite para pesquisar (dinâmico)..." style="flex:2; min-width:320px" />
@@ -576,42 +798,59 @@ mark{ background:#eab30833; border:1px solid #eab30855; border-radius:4px; paddi
 </label>
       </div>
 
-  <div class="row" style="margin-top:8px">
-  <button id="btnPickFiles2"  class="btn"        type="button">Importar arquivos (LOCAL)</button>
-  <button id="btnPickFolder2" class="btn ghost"  type="button">Importar pasta (LOCAL)</button>
-</div>
+  <!-- (botões de importação movidos para o cabeçalho da seção) -->
 
-      <div class="status-line">
+      <div class="status-line" style="display:none">
   <span id="driveStatus"  class="pill">Drive: Desconectado</span>
   <span id="importStatus" class="pill">Origem: Nenhum documento carregado</span>
 </div>
 
-<label class="muted" style="margin-top:8px; display:block">Documentos importados</label>
-<ul id="importedDocs" class="list"></ul>
+<!-- Lista de documentos agora abre em modal (id=docsModal); removida desta coluna -->
 
 <label class="muted" style="margin-top:8px; display:block">Resultados</label>
-      <div id="searchList" class="list"></div>
+<div id="searchList" class="list"></div>
+
     </section>
 
     <!-- Coluna DIREITA (Prévia) -->
     <section class="card col-8 preview-card">
-      <h2>Prévia & Edição</h2>
+      <h2>
+        <span>Prévia &amp; Edição</span>
+        <div class="preview-actions" aria-label="Ações da prévia" style="gap:10px">
+          <!-- Salvar no Drive (nuvem com seta para cima) -->
+          <button id="btnSaveDrive" class="sn-btn" title="Salvar no Drive" type="button" aria-label="Salvar no Drive">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M6 18h12a3 3 0 0 0 0-6 5 5 0 0 0-9.5-2.5A4 4 0 0 0 6 12" stroke="currentColor"/>
+              <path d="M12 16V9M9.5 11.5 12 9l2.5 2.5" stroke="currentColor"/>
+            </svg>
+          </button>
+          <!-- Baixar DOCX (arquivo com seta para baixo) -->
+          <button id="btnExportDocx" class="sn-btn" title="Baixar DOCX" type="button" aria-label="Baixar DOCX">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M6 4h9l3 3v13H6z" stroke="currentColor"/>
+              <path d="M12 9v7M9.5 13.5 12 16l2.5-2.5" stroke="currentColor"/>
+            </svg>
+          </button>
+          <!-- Baixar TXT (arquivo listrado com seta para baixo) -->
+          <button id="btnExportTxt" class="sn-btn" title="Baixar TXT" type="button" aria-label="Baixar TXT">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M5 4h9l3 3v13H5z" stroke="currentColor"/>
+              <path d="M8 9h6M8 12h6M8 15h4" stroke="currentColor"/>
+              <path d="M12 11v7M9.5 16.5 12 19l2.5-2.5" stroke="currentColor"/>
+            </svg>
+          </button>
+          <!-- Editar (lápis) -->
+          <button id="btnEdit" class="sn-btn" title="Editar" type="button" aria-label="Editar">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 20h4l10-10-4-4L4 16v4z" stroke="currentColor"/>
+            </svg>
+          </button>
+        </div>
+      </h2>
       <div class="preview-head">
         <span class="preview-title" id="docTitle">(nenhum documento selecionado)</span>
-        <div class="preview-actions" aria-label="Ações da prévia">
-  <!-- Linha 1: Edição local -->
-  <div class="row" style="gap:8px">
-    <button id="btnEdit"       class="btn"        type="button" title="Alternar modo de edição">Editar</button>
-    <button id="btnSaveLocal"  class="btn"        type="button" title="Salvar no arquivo atual (DOCX local)">Salvar</button>
-  </div>
-  <!-- Linha 2: Drive + Exportações -->
-  <div class="row" style="gap:8px">
-    <button id="btnSaveDrive"   class="btn btn-drive" type="button" title="Salvar no Drive (mesmo arquivo quando disponível)">Salvar no Drive</button>
-    <button id="btnExportDocx"  class="btn ghost"     type="button">Salvar DOCX</button>
-<button id="btnExportTxt"   class="btn ghost"     type="button">Salvar TXT</button>
-  </div>
-</div>
       </div>
+
       <label class="muted">Prévia (500 antes | 1000 depois do 1º match · clique no resultado para abrir)</label>
       <div id="searchPreview" aria-label="Prévia do documento"></div>
       <!-- Mantido oculto apenas por compatibilidade -->
@@ -649,7 +888,7 @@ mark{ background:#eab30833; border:1px solid #eab30855; border-radius:4px; paddi
 <script>
 </main>
 <script>
-// "Salvar DOCX/TXT": usa a PRÉVIA e abre diálogo; com TRAVA anti-duplo para não salvar 2x.
+// "Baixar DOCX/TXT": salva no Drive (se disponível) e baixa o arquivo (anti-duplo clique).
 (function bindSavesWithPicker(){
   function mdRuns(line, docx){
     const { TextRun } = docx;
@@ -664,9 +903,18 @@ mark{ background:#eab30833; border:1px solid #eab30855; border-radius:4px; paddi
     return out.length ? out : [ new TextRun({ text:' ', font:'Arial', size:20 }) ];
   }
 
-  async function saveDocxFromPreview(targetBtn){
+    async function saveDocxFromPreview(targetBtn){
     if(targetBtn?.dataset.busy==='1') return; targetBtn.dataset.busy='1';
     try{
+      // se estiver editando, finaliza antes de salvar
+      if (els?.searchPreview?.isContentEditable) {
+        els.searchPreview.contentEditable = 'false';
+        els.searchPreview.classList.remove('editing');
+        if (els.btnEdit) { els.btnEdit.dataset.active='0'; els.btnEdit.classList.remove('active'); }
+      }
+      // salva no Drive se o botão existir/estiver habilitado
+      if (els?.btnSaveDrive && !els.btnSaveDrive.disabled) { try{ els.btnSaveDrive.click(); }catch(_){} }
+
       if(!window.docx){ alert('Biblioteca DOCX não carregada.'); return; }
       const { Document, Packer, Paragraph, TextRun } = docx;
       const title = (els.docTitle?.textContent || selectedDoc?.name || 'documento').trim() || 'documento';
@@ -700,9 +948,18 @@ mark{ background:#eab30833; border:1px solid #eab30855; border-radius:4px; paddi
     finally{ delete targetBtn.dataset.busy; }
   }
 
-  async function saveTxtFromPreview(targetBtn){
+    async function saveTxtFromPreview(targetBtn){
     if(targetBtn?.dataset.busy==='1') return; targetBtn.dataset.busy='1';
     try{
+      // se estiver editando, finaliza antes de salvar
+      if (els?.searchPreview?.isContentEditable) {
+        els.searchPreview.contentEditable = 'false';
+        els.searchPreview.classList.remove('editing');
+        if (els.btnEdit) { els.btnEdit.dataset.active='0'; els.btnEdit.classList.remove('active'); }
+      }
+      // salva no Drive se o botão existir/estiver habilitado
+      if (els?.btnSaveDrive && !els.btnSaveDrive.disabled) { try{ els.btnSaveDrive.click(); }catch(_){} }
+
       const title = (els.docTitle?.textContent || selectedDoc?.name || 'documento').replace(/\.[^.]+$/, '');
       const text  = String(els.searchPreview?.textContent || selectedDoc?.text || '');
       const blob  = new Blob([text], {type:'text/plain'});
@@ -743,8 +1000,100 @@ mark{ background:#eab30833; border:1px solid #eab30855; border-radius:4px; paddi
 })();
 </script>
 
+<!-- Posiciona a side-nav alinhada ao container (fixa ao rolar) e liga o topbar -->
+<script>
+(function initLayoutAndTopbar(){
+  const tabs  = document.getElementById('tabsBar');
+  const tConnect = document.getElementById('tbConnect');
+  const tDisconnect = document.getElementById('tbDisconnect');
+
+  // Abas no topbar → reusam os rádios/DOM já existentes
+  function show(name){
+
+    const m = { conversor: 'tabConversor', pesquisa: 'tabPesquisa', criacao: 'tabCriacao' };
+    const id = m[name]; if (!id) return;
+    const radio = document.getElementById(id);
+    if (radio){ radio.checked = true; radio.dispatchEvent(new Event('change',{bubbles:true})); }
+    // feedback visual do topbar
+    document.querySelectorAll('#tabsBar .seg').forEach(btn=>{
+      btn.classList.toggle('active', btn.getAttribute('data-view')===name);
+    });
+    // fallback: exibir painéis manualmente caso necessário
+    const vc = document.getElementById('viewConversor'),
+          vp = document.getElementById('viewPesquisa'),
+          vr = document.getElementById('viewCriacao');
+    if (vc && vp && vr){
+      vc.style.display = (name==='conversor') ? '' : 'none';
+      vp.style.display = (name==='pesquisa')  ? '' : 'none';
+      vr.style.display = (name==='criacao')   ? '' : 'none';
+    }
+    // exibe as "bolinhas" de status só na aba Pesquisa
+    const snGroup = document.getElementById('snStatusGroup');
+    if (snGroup) snGroup.style.display = (name==='pesquisa') ? 'grid' : 'none';
+  }
+  if (tabs){
+    tabs.querySelectorAll('.seg').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{ e.preventDefault(); show(btn.getAttribute('data-view')); });
+    });
+    // estado inicial
+    show('conversor');
+  }
+
+  // Drive no topbar → dispara botões nativos (mantém funcionalidades)
+  tConnect?.addEventListener('click', (e)=>{ e.preventDefault(); (document.getElementById('btnDriveConnectTop')||document.getElementById('cfgConnect'))?.click(); });
+  tDisconnect?.addEventListener('click', (e)=>{ e.preventDefault(); (document.getElementById('btnDriveDisconnectTop')||document.getElementById('cfgDisconnect'))?.click(); });
+})();
+</script>
+
+<!-- Liga ícones de importação do cabeçalho e atualiza o indicador de importação -->
+<script>
+(function wireImportIcons(){
+  if (window.__WIRED_IMPORT_ICONS__) return; window.__WIRED_IMPORT_ICONS__ = true;
+
+  // clona para remover ouvintes antigos
+  let btnFiles  = document.getElementById('btnPickFiles2');
+  let btnFolder = document.getElementById('btnPickFolder2');
+  const inFiles = document.getElementById('fileInputFiles');
+  const inDir   = document.getElementById('fileInputDir');
+  if (btnFiles){ const c = btnFiles.cloneNode(true); btnFiles.replaceWith(c); btnFiles = c; }
+  if (btnFolder){ const c = btnFolder.cloneNode(true); btnFolder.replaceWith(c); btnFolder = c; }
+
+  function openInput(el){ if(el && el.click) el.click(); }
+  btnFiles?.addEventListener('click',  e => { e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); openInput(inFiles);  });
+  btnFolder?.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); openInput(inDir);    });
+
+  function paintStatus(has, err){
+    const dot = document.getElementById('snImportDot');
+    if (dot) dot.className = 'sn-dot ' + (err ? 'err' : (has ? 'ok' : 'idle'));
+    const btn = document.getElementById('btnImportStatus');
+    if (btn){
+      if (err){ btn.style.background = 'linear-gradient(90deg,#ef4444,#f59e0b)'; btn.style.borderColor='transparent'; }
+      else if (has){ btn.style.background = 'linear-gradient(90deg,#16a34a,#22c55e)'; btn.style.borderColor='transparent'; }
+      else { btn.style.background = 'linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03))'; btn.style.borderColor='var(--border)'; }
+    }
+  }
+  function refreshImportStatus(){
+    const has = (window.selectedFiles && window.selectedFiles.length) ||
+                (inFiles?.files?.length || 0) || (inDir?.files?.length || 0);
+    paintStatus(!!has, false);
+  }
+  inFiles?.addEventListener('change', refreshImportStatus, { once:false });
+  inDir?.addEventListener('change',   refreshImportStatus, { once:false });
+
+  if (window.renderImportedDocs){
+    const _r = window.renderImportedDocs;
+    window.renderImportedDocs = function(){
+      const out = _r.apply(this, arguments);
+      try{ refreshImportStatus(); }catch(_){}
+      return out;
+    };
+  }
+})();
+</script>
+
   <!-- Ajuda flutuante (canto inferior direito) -->
   <div class="help-fab">
+
     <span class="help-hint" tabindex="0" aria-label="Ajuda: passo a passo" role="button">?
       <div class="help-bubble" role="dialog" aria-modal="false">
         <div class="hb-title">🧠 Passo a passo da Curadoria</div>
@@ -875,6 +1224,18 @@ function setStatus(el, state, text){
   el.textContent = text || el.textContent;
   el.classList.remove('status--idle','status--ok','status--err');
   el.classList.add(state ? `status--${state}` : 'status--idle');
+
+  // Propaga o status para as "bolinhas" da side-nav
+  try{
+    const cls = state ? state : 'idle';
+    if (el.id === 'driveStatus'){
+      const d = document.getElementById('snDriveDot');
+      if (d) d.className = 'sn-dot ' + cls;
+    } else if (el.id === 'importStatus'){
+      const i = document.getElementById('snImportDot');
+      if (i) i.className = 'sn-dot ' + cls;
+    }
+  }catch(_){}
 }
 
 // >>> OPCIONAL: preencha para conexão em 1 clique (sem digitar no modal)
@@ -2027,6 +2388,21 @@ async function saveLocalOriginal(){
 
 function exportTxt(){
   if(!selectedDoc){ alert('Selecione um resultado primeiro.'); return; }
+
+  // Se estiver em modo de edição, gravar o que está na prévia
+  if (els.searchPreview && els.searchPreview.isContentEditable){
+    const updated = els.searchPreview.textContent || '';
+    selectedDoc.text = updated;
+    const i = indexedDocs.findIndex(d => d.name === selectedDoc.name);
+    if (i >= 0) indexedDocs[i].text = updated;
+
+    // Encerrar visualmente a edição (sem alterar outras funcionalidades)
+    els.searchPreview.contentEditable = 'false';
+    els.searchPreview.classList.remove('editing');
+    if (els.btnEdit) els.btnEdit.textContent = 'Editar';
+    editing = false;
+  }
+
   const fname = (selectedDoc.name || 'documento').replace(/\.[^.]+$/, '') + '.txt';
   const text  = selectedDoc.text || '';
   download(fname, text);
@@ -2036,9 +2412,21 @@ async function exportDocx(){
   if(!selectedDoc){ alert('Selecione um resultado primeiro.'); return; }
   if(!window.docx){ alert('Biblioteca DOCX não carregada.'); return; }
 
-  const { Document, Packer, Paragraph } = docx;
+  // Se estiver em modo de edição, gravar o que está na prévia
+  if (els.searchPreview && els.searchPreview.isContentEditable){
+    const updated = els.searchPreview.textContent || '';
+    selectedDoc.text = updated;
+    const i = indexedDocs.findIndex(d => d.name === selectedDoc.name);
+    if (i >= 0) indexedDocs[i].text = updated;
 
-  // Texto -> parágrafos (um parágrafo por linha)
+    // Encerrar visualmente a edição
+    els.searchPreview.contentEditable = 'false';
+    els.searchPreview.classList.remove('editing');
+    if (els.btnEdit) els.btnEdit.textContent = 'Editar';
+    editing = false;
+  }
+
+  const { Document, Packer, Paragraph } = docx;
   const lines = (selectedDoc.text || '').split('\n');
   const paragraphs = lines.map(l => new Paragraph(l || ' '));
 
@@ -2046,7 +2434,6 @@ async function exportDocx(){
   const blob = await Packer.toBlob(doc);
   const fname = (selectedDoc.name || 'documento').replace(/\.[^.]+$/, '') + '.docx';
 
-  // Baixa o arquivo
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = fname; a.style.display = 'none';
@@ -3233,6 +3620,385 @@ window.importFromDriveFolder = async function(){
     if(els.importStatus) setStatus(els.importStatus, 'ok', 'Edição salva na sessão');
     clone.disabled = true;
   });
+})();
+</script>
+<script>
+/* ===== Side Nav Conversor – links de apps, abas internas e ajuda ===== */
+window.APP_LINKS = window.APP_LINKS || {
+  workspace:   'LINK_DO_WORKSPACE',
+  conversor:   'LINK_DO_CONVERSOR',
+  transmissor: 'LINK_DO_TRANSMISSOR',
+  current:     'conversor'
+};
+
+window.addEventListener('DOMContentLoaded', function(){
+  // 1) Apps: links e estado "ativo"
+  document.querySelectorAll('.sn-btn[data-app]').forEach(a=>{
+    const app = a.getAttribute('data-app');
+    if (window.APP_LINKS[app]) a.setAttribute('href', window.APP_LINKS[app]);
+    a.classList.toggle('active', window.APP_LINKS.current === app);
+  });
+
+  // 2) Abas internas: acionam os radios existentes (DOM preservado no header oculto)
+  const views = {
+    conversor: { tab: document.getElementById('tabConversor'), panel: document.getElementById('viewConversor') },
+    pesquisa:  { tab: document.getElementById('tabPesquisa'),  panel: document.getElementById('viewPesquisa')  },
+    criacao:   { tab: document.getElementById('tabCriacao'),   panel: document.getElementById('viewCriacao')   }
+  };
+  function show(name){
+    const v = views[name]; if(!v) return;
+    if (v.tab){ v.tab.checked = true; v.tab.dispatchEvent(new Event('change', {bubbles:true})); }
+    // fallback visual caso o script original não trate os radios
+    Object.values(views).forEach(obj=>{ if(obj.panel){ obj.panel.style.display = (obj===v) ? '' : 'none'; } });
+    // feedback de seleção no menu interno
+    document.querySelectorAll('.sn-btn[data-view]').forEach(x => x.classList.toggle('active', x.getAttribute('data-view')===name));
+  }
+  document.querySelectorAll('.sn-btn[data-view]').forEach(a=>{
+    a.addEventListener('click', (e)=>{ e.preventDefault(); show(a.getAttribute('data-view')); });
+  });
+  // inicia na aba Conversor
+  show('conversor');
+
+  // 3) Conectar/Desconectar (aciona os botões já existentes no header oculto)
+  const btnConn = document.getElementById('btnDriveConnectTop') || document.getElementById('cfgConnect');
+  const btnDisc = document.getElementById('btnDriveDisconnectTop') || document.getElementById('cfgDisconnect');
+  document.querySelector('.sn-btn[data-action="connect"]')?.addEventListener('click', (e)=>{ e.preventDefault(); btnConn?.click(); });
+  document.querySelector('.sn-btn[data-action="disconnect"]')?.addEventListener('click', (e)=>{ e.preventDefault(); btnDisc?.click(); });
+
+  // 4) Ajuda: usa a mesma .help-bubble existente, ancorada ao container
+  const shell   = document.querySelector('.app-frame');
+  const nav     = document.querySelector('.side-nav');
+  const bubble  = document.querySelector('.help-bubble');
+  const fab     = document.querySelector('.help-fab');
+  const helpBtn = document.querySelector('.sn-btn[data-app="ajuda"]');
+
+  if (bubble && shell && nav){
+    if (fab) fab.style.display = 'none';
+    shell.appendChild(bubble);
+    bubble.style.position = 'absolute';
+    bubble.style.right = 'auto';
+    bubble.style.display = 'none';
+    bubble.style.zIndex = '1300';
+    const place = () => {
+      const left = nav.offsetLeft + nav.offsetWidth + 12;
+      bubble.style.left = left + 'px';
+      bubble.style.bottom = '24px';
+      bubble.style.maxWidth = 'min(560px, calc(100% - ' + (left + 36) + 'px))';
+    };
+    place(); window.addEventListener('resize', place);
+
+    let open=false;
+    helpBtn?.addEventListener('click', (e)=>{ e.preventDefault(); open=!open; bubble.style.display = open ? 'block' : 'none'; });
+  }
+});
+</script>
+</div>
+<style id="conversor-modal-and-dots">
+  .sn-btn.sn-sm{ width:36px; height:36px; }
+  .sn-dot{ width:10px; height:10px; border-radius:50%; display:none; border:1px solid var(--border); background:#9aa4b2; }
+  .sn-dot.ok{ background:#16a34a; }
+  .sn-dot.err{ background:#ef4444; }
+  .sn-dot.idle{ background:#9aa4b2; }
+  /* Modal documentos */
+  #docsModal{ display:none; position:fixed; inset:0; z-index:9999; align-items:center; justify-content:center; background:rgba(0,0,0,.5); }
+  #docsModal .box{ width:min(720px,94vw); background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px; box-shadow:0 20px 50px rgba(0,0,0,.45); }
+  #docsModal .box h3{ margin:0 0 10px 0; display:flex; align-items:center; justify-content:space-between; }
+  #docsModalClose{ border:1px solid var(--border); border-radius:10px; background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03)); color:var(--fg); width:36px; height:36px; display:grid; place-items:center; }
+</style>
+
+<!-- Modal: Documentos importados -->
+<div id="docsModal">
+  <div class="box">
+    <h3>Documentos importados
+      <button id="docsModalClose" title="Fechar" type="button" aria-label="Fechar">
+        ✕
+      </button>
+    </h3>
+    <ul id="importedDocs" class="list" style="max-height:min(64vh,520px); overflow:auto"></ul>
+  </div>
+</div>
+
+<script>
+/* Abre/fecha modal e integra com a indexação de pesquisa + dots na barra */
+(function conversorExtras(){
+  const btnModal = document.getElementById('btnDocsModalOpen');
+  const modal    = document.getElementById('docsModal');
+  const closeBtn = document.getElementById('docsModalClose');
+  btnModal?.addEventListener('click', ()=>{ modal.style.display='flex'; });
+  closeBtn?.addEventListener('click', ()=>{ modal.style.display='none'; });
+  modal?.addEventListener('click', (e)=>{ if(e.target===modal) modal.style.display='none'; });
+
+  // Mostrar os "bolinhas" só na aba PESQUISA
+  const snGroup = document.getElementById('snStatusGroup');
+  function toggleDots(view){ if (snGroup) snGroup.style.display = (view==='pesquisa') ? 'grid' : 'none'; }
+
+  // Hook na função show(view) já existente
+  const _show = window.show;
+  window.show = function(name){ try{ toggleDots(name); }catch(_){}; return _show ? _show(name) : undefined; };
+  toggleDots('conversor'); // estado inicial
+
+  // Atualiza dots quando setStatus() é chamado
+  const snDrive = document.getElementById('snDriveDot');
+  const snImp   = document.getElementById('snImportDot');
+  const _setStatus = window.setStatus;
+  window.setStatus = function(el, state, text){
+    if (_setStatus) _setStatus(el, state, text);
+    const cls = state ? state : 'idle';
+    if (el && el.id === 'driveStatus'  && snDrive){ snDrive.className = 'sn-dot ' + cls; }
+    if (el && el.id === 'importStatus' && snImp  ){ snImp.className   = 'sn-dot ' + cls; }
+  };
+})();
+</script>
+
+<script>
+/* ====== Busca Full-Text com título (patch não-invasivo) ======
+   - Indexa arquivo inteiro + TÍTULO (nome do arquivo) 
+   - Respeita: Maiúsc/minúsc, Palavra inteira, Ignorar acentos
+   - Mantém IDs/fluxos existentes (renderImportedDocs, selectedFiles, etc.)
+*/
+(function fulltextSearchPatch(){
+  const { searchInput, searchCase, searchWhole, searchDiacritics, searchList, searchPreview, docTitle } = els || {};
+  if (!searchInput || !searchList || !searchPreview) return;
+
+  let ftIndex = []; // [{ name, text, full, norm, map, textOffset }]
+
+  function fold(s){ return String(s||'').normalize('NFD').replace(/\p{M}+/gu, ''); }
+  function foldWithMap(s){
+    s = String(s||'');
+    let norm = '', map = [];
+    for(let i=0;i<s.length;i++){
+      const f = s[i].normalize('NFD').replace(/\p{M}+/gu,'');
+      for(let k=0;k<f.length;k++){ norm += f[k]; map.push(i); }
+    }
+    return { norm, map };
+  }
+  function buildRegex(q, {caseSensitive, wholeWord}){
+    const esc = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pat = wholeWord ? `\\b${esc}\\b` : esc;
+    return new RegExp(pat, caseSensitive ? 'g' : 'gi');
+  }
+
+  async function ensureIndexAll(){
+    ftIndex = [];
+    for (const f of (window.selectedFiles||[])){
+      try{
+        const txt = await readFileAsText(f);
+        const title = String(f.name||'');
+        const full  = title + '\n' + txt; // inclui TÍTULO
+        const { norm, map } = foldWithMap(full);
+        ftIndex.push({ name:f.name, text:txt, full, norm, map, textOffset: title.length + 1 });
+      }catch(_){}
+    }
+  }
+
+  function hlEscape(s){ return String(s||'').replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+
+  function highlightExcerpt(raw, start, end, matchStart, matchEnd){
+    const pre  = hlEscape(raw.slice(start, matchStart));
+    const mid  = hlEscape(raw.slice(matchStart, matchEnd));
+    const post = hlEscape(raw.slice(matchEnd, end));
+    return pre + '<mark>' + mid + '</mark>' + post;
+  }
+
+  function doSearch(){
+    const qRaw = searchInput.value || '';
+    const cs   = !!(searchCase && searchCase.checked);
+    const ww   = !!(searchWhole && searchWhole.checked);
+    const ignD = !!(searchDiacritics && searchDiacritics.checked);
+
+    searchList.innerHTML = '';
+    searchPreview.textContent = '';
+    docTitle && (docTitle.textContent = '(nenhum documento selecionado)');
+
+    if (!qRaw.trim()){ return; }
+
+    const q = ignD ? fold(qRaw) : qRaw;
+    const re = buildRegex(q, {caseSensitive: cs, wholeWord: ww});
+
+    const results = [];
+
+    for (const d of ftIndex){
+      let hay = ignD ? d.norm : d.full;
+      let baseIdx = 0; // índice baseado na string pesquisada
+      let m;
+      while ((m = re.exec(hay)) !== null){
+        const idxStart = ignD ? d.map[m.index] : m.index;
+        const idxEnd   = ignD ? d.map[Math.max(0, m.index + m[0].length - 1)] + 1 : (m.index + m[0].length);
+
+        // delimita recorte no TEXTO (ignora título), mas se o match for no título mostramos início do texto
+        const startBound = Math.max(d.textOffset, idxStart - 500);
+        const endBound   = Math.min(d.full.length, idxEnd + 1000);
+
+        results.push({
+          name: d.name,
+          matchStart: idxStart,
+          matchEnd: idxEnd,
+          excerpt: highlightExcerpt(d.full, startBound, endBound, idxStart, idxEnd),
+          fullRef: d // p/ abrir no preview
+        });
+
+        // evita loops infinitos com regexs vazias
+        if (m[0].length === 0){ re.lastIndex++; }
+      }
+    }
+
+    // render
+    if (!results.length){
+      searchList.innerHTML = '<div class="muted">(sem resultados)</div>';
+      return;
+    }
+
+    results.sort((a,b)=> a.name.localeCompare(b.name));
+
+    for (const r of results){
+      const item = document.createElement('div');
+      item.className = 'result-item';
+      item.innerHTML = `<strong>${hlEscape(r.name)}</strong><div style="margin-top:6px;font-size:12px">${r.excerpt}</div>`;
+      item.addEventListener('click', ()=>{
+        const d = r.fullRef;
+        // abre documento no preview (apenas TEXTO, sem título)
+        const text = d.text;
+        const adjStart = Math.max(0, r.matchStart - d.textOffset);
+        const adjEnd   = Math.max(adjStart, r.matchEnd - d.textOffset);
+        searchPreview.innerHTML = highlightExcerpt(text, Math.max(0, adjStart-500), Math.min(text.length, adjEnd+1000), adjStart, adjEnd);
+        if (docTitle) docTitle.textContent = d.name;
+        window.selectedDoc = { name:d.name, text:d.text };
+      });
+      searchList.appendChild(item);
+    }
+  }
+
+  // Garante reindexação quando documentos mudam: “cola” no renderImportedDocs existente
+  if (window.renderImportedDocs){
+    const _render = window.renderImportedDocs;
+    window.renderImportedDocs = async function(){
+      const out = _render.apply(this, arguments);
+      try{ await ensureIndexAll(); doSearch(); }catch(_){}
+      return out;
+    };
+  } else {
+    // fallback inicial
+    ensureIndexAll().then(doSearch).catch(()=>{});
+  }
+
+  searchInput.addEventListener('input', doSearch);
+  searchCase?.addEventListener('change', doSearch);
+  searchWhole?.addEventListener('change', doSearch);
+  searchDiacritics?.addEventListener('change', doSearch);
+})();
+</script>
+<script>
+/* Patch full-text: título+conteúdo, TODAS as ocorrências (agrupadas) */
+(function fulltextAllOccurrences(){
+  if (window.__FT_OCC_PATCH__) return; window.__FT_OCC_PATCH__=true;
+  const elsRef = window.els || {};
+  const searchInput = elsRef.searchInput;
+  const searchList  = elsRef.searchList;
+  const searchPreview = elsRef.searchPreview;
+  const docTitle = elsRef.docTitle;
+  if (!searchInput || !searchList || !searchPreview) return;
+
+  // reindexa tudo (título + conteúdo)
+  let ftIndex = [];
+  function fold(s){ return String(s||'').normalize('NFD').replace(/\p{M}+/gu,''); }
+  function buildRegex(q, cs, ww){
+    const esc=q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    const pat= ww?`\\b${esc}\\b`:esc; return new RegExp(pat, cs?'g':'gi');
+  }
+  function foldWithMap(s){
+    s=String(s||''); let norm='', map=[];
+    for(let i=0;i<s.length;i++){ const f=s[i].normalize('NFD').replace(/\p{M}+/gu,''); for(let k=0;k<f.length;k++){ norm+=f[k]; map.push(i); } }
+    return { norm, map };
+  }
+  async function ensureIndexAll(){
+    ftIndex=[];
+    for (const f of (window.selectedFiles||[])){
+      try{
+        const txt = await readFileAsText(f);
+        const title = String(f.name||'');
+        const full = title+'\n'+txt;
+        const {norm,map}=foldWithMap(full);
+        ftIndex.push({ name:f.name, text:txt, full, norm, map, textOffset:title.length+1 });
+      }catch(_){}
+    }
+  }
+  function escHTML(s){ return String(s||'').replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+  function highlight(raw, start, end, m0, m1){
+    return escHTML(raw.slice(start,m0))+'<mark>'+escHTML(raw.slice(m0,m1))+'</mark>'+escHTML(raw.slice(m1,end));
+  }
+  function render(resByDoc){
+    searchList.innerHTML='';
+    const docs=Object.keys(resByDoc).sort((a,b)=>a.localeCompare(b));
+    if(!docs.length){ searchList.innerHTML='<div class="muted">(sem resultados)</div>'; return; }
+    for (const name of docs){
+      const group=document.createElement('div'); group.className='result-item';
+      const head=document.createElement('div');
+      const items=resByDoc[name];
+      head.style.display='flex'; head.style.alignItems='center'; head.style.justifyContent='space-between';
+      head.innerHTML=`<strong>${escHTML(name)}</strong><span class="pill">Ocorrências: ${items.length}</span>`;
+      const list=document.createElement('div'); list.style.marginTop='8px'; list.style.display='grid'; list.style.gap='8px';
+      for(const r of items){
+        const it=document.createElement('div');
+        it.style.border='1px solid var(--border)'; it.style.borderRadius='10px'; it.style.padding='8px'; it.style.background='#0f1621';
+        it.innerHTML=`<div style="font-size:12px">${r.excerpt}</div>`;
+        it.addEventListener('click',()=>{
+          const d=r.fullRef; const text=d.text;
+          const s=Math.max(0, r.matchStart-d.textOffset); const e=Math.max(s, r.matchEnd-d.textOffset);
+          searchPreview.innerHTML=highlight(text, Math.max(0,s-500), Math.min(text.length,e+1000), s, e);
+          if (docTitle) docTitle.textContent=d.name;
+          window.selectedDoc={ name:d.name, text:d.text };
+        });
+        list.appendChild(it);
+      }
+      group.appendChild(head); group.appendChild(list); searchList.appendChild(group);
+    }
+  }
+  function doSearch(){
+    const cs   = !!(elsRef.searchCase && elsRef.searchCase.checked);
+    const ww   = !!(elsRef.searchWhole && elsRef.searchWhole.checked);
+    const ignD = !!(elsRef.searchDiacritics && elsRef.searchDiacritics.checked);
+    const qRaw = searchInput.value||'';
+    searchList.innerHTML=''; searchPreview.textContent=''; if(docTitle) docTitle.textContent='(nenhum documento selecionado)';
+    if(!qRaw.trim()) return;
+    const q = ignD ? fold(qRaw) : qRaw;
+    const re = buildRegex(q, cs, ww);
+    const resByDoc = {};
+    for(const d of ftIndex){
+      const hay = ignD ? d.norm : d.full;
+      let m;
+      while((m=re.exec(hay))!==null){
+        const s = ignD ? d.map[m.index] : m.index;
+        const e = ignD ? d.map[Math.max(0, m.index+m[0].length-1)]+1 : (m.index+m[0].length);
+        const clipS = Math.max(d.textOffset, s-500);
+        const clipE = Math.min(d.full.length, e+1000);
+        (resByDoc[d.name] ||= []).push({ fullRef:d, matchStart:s, matchEnd:e, excerpt:highlight(d.full, clipS, clipE, s, e) });
+        if(m[0].length===0) re.lastIndex++; // segurança
+      }
+    }
+    render(resByDoc);
+  }
+  // garante listeners únicos (sem interferir no restante da app)
+  (async function initSearch(){
+    await ensureIndexAll();
+    // reindexar quando a lista de importados for refeita
+    if (window.renderImportedDocs){
+      const _render = window.renderImportedDocs;
+      window.renderImportedDocs = async function(){
+        const out=_render.apply(this, arguments);
+        try{ await ensureIndexAll(); doSearch(); }catch(_){}
+        return out;
+      };
+    }
+    // liga entradas
+    searchInput.removeEventListener && searchInput.replaceWith && (function(){
+      const cl=searchInput.cloneNode(true); cl.value=searchInput.value; searchInput.parentNode.replaceChild(cl,searchInput);
+      if (window.els) window.els.searchInput = cl;
+      cl.addEventListener('input', doSearch);
+      elsRef.searchCase?.addEventListener('change', doSearch);
+      elsRef.searchWhole?.addEventListener('change', doSearch);
+      elsRef.searchDiacritics?.addEventListener('change', doSearch);
+    })();
+  })();
 })();
 </script>
 </body>
