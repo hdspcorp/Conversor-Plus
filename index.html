@@ -618,15 +618,15 @@ mark{ background:#eab30833; border:1px solid #eab30855; border-radius:4px; paddi
        <h2>
          <span>Configuração</span>
          <div class="seg-wrap" id="outmodeTop" style="margin-left:auto">
-           <label class="seg"><input type="radio" name="outmode" id="modePacks" checked><span>Gerar PACKS</span></label>
-           <label class="seg"><input type="radio" name="outmode" id="modeIndividual"><span>Converter para TXT (1:1)</span></label>
+           <label class="seg"><input type="radio" name="outmode" id="modePacks" checked><span>PACKS</span></label>
+           <label class="seg"><input type="radio" name="outmode" id="modeIndividual"><span>Converter TXT 1:1</span></label>
          </div>
        </h2>
 
 <!-- 2) Opções gerais -->
 <div class="row" style="margin-top:12px">
   <!-- <label><input id="stripHtml" type="checkbox" /> Remover tags HTML de arquivos .html</label> -->
-  <label><input id="preserveOrder" type="checkbox" checked /> Preservar ordem por nome</label>
+  <label><input id="preserveOrder" type="checkbox" checked />Ordem por nome</label>
   <!-- <label><input id="optimizeMd" type="checkbox" /> Otimizar para IA (Markdown + metadados)</label> -->
 </div>
 
@@ -661,7 +661,7 @@ mark{ background:#eab30833; border:1px solid #eab30855; border-radius:4px; paddi
         <option value="hash">## FIM DO DOCUMENTO ##</option>
         <option value="none" selected>Nenhum separador</option>
       </select>
-      <input id="sepCustom" type="text" placeholder="Personalizado (se preencher, substitui o selecionado)" style="flex:2; min-width:260px" />
+      <input id="sepCustom" type="text" placeholder="Personalizado" style="flex:2; min-width:260px" />
     </div>
     <small class="muted"></small>
   </div>
@@ -688,16 +688,16 @@ mark{ background:#eab30833; border:1px solid #eab30855; border-radius:4px; paddi
           </div>
         </h2>
         <div class="row" style="margin-top:8px">
-          <span class="pill">Suporta: .txt .md .csv .json .log .html .htm .pdf .docx</span>
+          <span class="pill">Arquivos Suportados: .txt .md .csv .json .log .html .htm .pdf .docx</span>
         </div>
         <input id="fileInputFiles" type="file" multiple style="display:none" accept=".txt,.md,.csv,.json,.log,.html,.htm,.pdf,.docx,.doc" />
         <input id="fileInputDir" type="file" multiple style="display:none" webkitdirectory directory accept=".txt,.md,.csv,.json,.log,.html,.htm,.pdf,.docx,.doc" />
         <div id="fileList" class="list" style="margin-top:12px"></div>
         <div class="stats">
           <div class="stat"><span>Total de arquivos</span><strong id="statFiles">0</strong></div>
-          <div class="stat"><span>Tamanho total (MB)</span><strong id="statSize">0</strong></div>
-          <div class="stat"><span>Caracteres (aprox.)</span><strong id="statChars">0</strong></div>
-          <div class="stat"><span>Tokens (≈ chars/4)</span><strong id="statTokens">0</strong></div>
+          <div class="stat"><span>Tamanho MB</span><strong id="statSize">0</strong></div>
+          <div class="stat"><span>Qtd. Caractéres</span><strong id="statChars">0</strong></div>
+          <div class="stat"><span>Tokens</span><strong id="statTokens">0</strong></div>
         </div>
       </section>
 
