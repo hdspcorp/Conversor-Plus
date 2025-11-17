@@ -568,6 +568,7 @@ mark{ background:#eab30833; border:1px solid #eab30855; border-radius:4px; paddi
       <button class="seg" data-view="conversor"><span>Conversor</span></button>
       <button class="seg" data-view="pesquisa"><span>Pesquisa</span></button>
       <button class="seg" data-view="criacao"><span>Criação</span></button>
+      <button class="seg" data-view="analise"><span>Análise</span></button>
     </div>
 
     <div class="drive">
@@ -860,6 +861,106 @@ mark{ background:#eab30833; border:1px solid #eab30855; border-radius:4px; paddi
   </div>
 
 </div>
+
+<!-- ===== ANÁLISE (4ª aba) ===== -->
+<div id="viewAnalise" style="display:none">
+  <div class="grid">
+    <section class="card col-12">
+      <h2>
+        <span>Análise</span>
+        <div class="row" style="gap:8px; margin-left:auto">
+          <button id="btnAnImport" class="btn">Importar</button>
+          <button id="btnAnDownload" class="btn ghost" disabled>Download</button>
+        </div>
+      </h2>
+
+      <!-- input oculto apenas desta aba -->
+      <input id="anFile" type="file" accept=".json,application/json" style="display:none" />
+    </section>
+  </div>
+</div>
+
+<!-- lógica exclusiva da aba Análise (não interfere no restante) -->
+<script>
+(function AnaliseTab(){
+  const btnImp = document.getElementById('btnAnImport');
+  const btnDwn = document.getElementById('btnAnDownload');
+  const input  = document.getElementById('anFile');
+
+  let csvReady = ''; // CSV gerado após importação
+
+  function toBRDate(d){
+    return d ? d.toLocaleDateString('pt-BR', { timeZone:'UTC' }) : '';
+  }
+
+  // Constrói CSV com 3 colunas: Cliente;Data;Quantidade
+  function buildCsv(data){
+    const convs = (data && data.conversations) ? data.conversations
+                 : (Array.isArray(data) ? data : []);
+    const map = new Map(); // code -> { date: Date|null, q: number }
+
+    for (const c of convs){
+      const rawId = c.user_id || (c.user && (c.user.id || c.userId)) || '';
+      const code  = String(rawId||'').split('.')[0]; // apenas antes do ponto
+      if (!code) continue;
+
+      const created = c.created_at || c.createdAt || '';
+      const d       = created ? new Date(created) : null;
+
+      const msgs  = Array.isArray(c.messages) ? c.messages : [];
+      const qUser = msgs.reduce((acc,m)=> acc + ((String(m.role||'').toLowerCase()==='user') ? 1 : 0), 0);
+
+      const prev = map.get(code);
+      const earliest = prev?.date ? (d && d < prev.date ? d : prev.date) : (d || null);
+      const q = (prev?.q || 0) + qUser;
+
+      map.set(code, { date: earliest, q });
+    }
+
+    const header = 'Cliente;Data;Quantidade';
+    const rows   = Array.from(map.entries()).map(([code,v]) =>
+      `${code};${toBRDate(v.date)};${v.q}`
+    );
+
+    return header + '\n' + rows.join('\n');
+  }
+
+  // Importar
+  btnImp?.addEventListener('click', (e)=>{ e.preventDefault(); input?.click(); });
+  input?.addEventListener('change', async (e)=>{
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    try{
+      const text = await f.text();
+      const json = JSON.parse(text);
+      csvReady = buildCsv(json);
+      if (btnDwn) btnDwn.disabled = !csvReady;
+      alert('JSON importado. CSV pronto para download.');
+    }catch(err){
+      console.error(err);
+      alert('Arquivo inválido ou JSON malformado: ' + (err.message||err));
+    }finally{
+      e.target.value = ''; // permite reimportar o mesmo arquivo
+    }
+  });
+
+  // Download
+  btnDwn?.addEventListener('click', (e)=>{
+    e.preventDefault();
+    if (!csvReady){ alert('Importe um arquivo JSON primeiro.'); return; }
+    const fname = 'analise.csv';
+    if (typeof window.download === 'function'){
+      window.download(fname, csvReady);
+    } else {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([csvReady], {type:'text/csv;charset=utf-8;'}));
+      a.download = fname; a.click();
+      setTimeout(()=> URL.revokeObjectURL(a.href), 600);
+    }
+  });
+})();
+</script>
+
   <!-- Modal de configuração do Google Drive -->
   <div id="driveCfg" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:9999; align-items:center; justify-content:center;">
     <div style="width:min(560px, 94vw); background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px;">
@@ -1010,10 +1111,12 @@ mark{ background:#eab30833; border:1px solid #eab30855; border-radius:4px; paddi
   // Abas no topbar → reusam os rádios/DOM já existentes
   function show(name){
 
-    const m = { conversor: 'tabConversor', pesquisa: 'tabPesquisa', criacao: 'tabCriacao' };
-    const id = m[name]; if (!id) return;
-    const radio = document.getElementById(id);
-    if (radio){ radio.checked = true; radio.dispatchEvent(new Event('change',{bubbles:true})); }
+    const m = { conversor: 'tabConversor', pesquisa: 'tabPesquisa', criacao: 'tabCriacao', analise: null };
+    const id = m[name];
+    if (id){
+      const radio = document.getElementById(id);
+      if (radio){ radio.checked = true; radio.dispatchEvent(new Event('change',{bubbles:true})); }
+    }
     // feedback visual do topbar
     document.querySelectorAll('#tabsBar .seg').forEach(btn=>{
       btn.classList.toggle('active', btn.getAttribute('data-view')===name);
@@ -1021,11 +1124,13 @@ mark{ background:#eab30833; border:1px solid #eab30855; border-radius:4px; paddi
     // fallback: exibir painéis manualmente caso necessário
     const vc = document.getElementById('viewConversor'),
           vp = document.getElementById('viewPesquisa'),
-          vr = document.getElementById('viewCriacao');
+          vr = document.getElementById('viewCriacao'),
+          va = document.getElementById('viewAnalise');
     if (vc && vp && vr){
       vc.style.display = (name==='conversor') ? '' : 'none';
       vp.style.display = (name==='pesquisa')  ? '' : 'none';
       vr.style.display = (name==='criacao')   ? '' : 'none';
+      if (va) va.style.display = (name==='analise') ? '' : 'none';
     }
     // exibe as "bolinhas" de status só na aba Pesquisa
     const snGroup = document.getElementById('snStatusGroup');
@@ -2399,7 +2504,7 @@ function exportTxt(){
     // Encerrar visualmente a edição (sem alterar outras funcionalidades)
     els.searchPreview.contentEditable = 'false';
     els.searchPreview.classList.remove('editing');
-    if (els.btnEdit) els.btnEdit.textContent = 'Editar';
+    if (els.btnEdit){ els.btnEdit.classList.remove('active'); els.btnEdit.dataset.active = '0'; }
     editing = false;
   }
 
@@ -3628,7 +3733,7 @@ window.APP_LINKS = window.APP_LINKS || {
   workspace:   'https://hdspcorp.github.io/Workspace-Plus/',
   conversor:   'https://hdspcorp.github.io/Conversor-Plus/',
   transmissor: 'https://hdspcorp.github.io/Transmissor-Plus/',
-  current:     'https://hdspcorp.github.io/Conversor-Plus/'
+  current:     'conversor'
 };
 
 window.addEventListener('DOMContentLoaded', function(){
@@ -3998,6 +4103,113 @@ window.addEventListener('DOMContentLoaded', function(){
       elsRef.searchWhole?.addEventListener('change', doSearch);
       elsRef.searchDiacritics?.addEventListener('change', doSearch);
     })();
+  })();
+})();
+</script>
+<style id="patch-ajuste-pesquisa-analise">
+  /* ——— Padronizar altura útil das abas (mesma “respiração” vertical) ——— */
+  #viewConversor > .grid,
+  #viewPesquisa  > .grid,
+  #viewCriacao   > .grid,
+  #viewAnalise   > .grid{
+    min-height: calc(100vh - 180px);
+  }
+
+  /* ——— Pesquisa: duas colunas com alturas exatamente iguais ——— */
+  #viewPesquisa .grid{ align-items: stretch; }
+  #viewPesquisa .card.col-4{
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 180px);
+    overflow: auto;
+  }
+  #viewPesquisa .preview-card{
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 180px);
+  }
+
+  /* A lista deve crescer até ocupar o card da esquerda */
+  #searchList{
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  /* A prévia deve crescer até ocupar o card da direita (sem min-height antigo) */
+  #searchPreview{
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    white-space: pre-wrap; /* preserva quebras/“espaçamentos” do texto */
+  }
+
+  /* Análise: impedir que “passe” do viewport em telas menores */
+  #viewAnalise > .grid{
+    max-height: calc(100vh - 180px);
+    overflow: auto;
+  }
+
+  /* Estado visual do botão EDITAR quando ativo (apenas cor, mantém o ícone) */
+  #btnEdit.active{
+    background: linear-gradient(180deg, rgba(34,211,238,.25), rgba(96,165,250,.20));
+    border-color: rgba(96,165,250,.35);
+  }
+</style>
+
+<script id="patch-editar-e-preview">
+(function(){
+  /* ——— EDITAR: manter só o ícone e trocar apenas cor/estado ——— */
+  const preview = document.getElementById('searchPreview');
+  const btnEdit = document.getElementById('btnEdit');
+  if(preview && btnEdit){
+    const clone = btnEdit.cloneNode(true);
+    btnEdit.replaceWith(clone);
+
+    function setEdit(on){
+      preview.contentEditable = on ? 'true' : 'false';
+      preview.classList.toggle('editing', on);
+      clone.classList.toggle('active', on);
+      clone.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+    clone.addEventListener('click', ()=>{
+      const on = !(preview.isContentEditable || preview.classList.contains('editing'));
+      setEdit(on);
+    });
+  }
+
+  /* ——— Prévia: respeitar negritos/itálicos simples (Markdown) sem mexer no backend ———
+     - Só transforma quando a prévia vier como texto puro.
+     - Se já existir HTML (ex.: <mark> dos realces), não toca. */
+  (function enhancePreviewBold(){
+    const el = document.getElementById('searchPreview');
+    if(!el) return;
+
+    const escapeHTML = s => s
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+    const mdToHTML = s => {
+      // **negrito** ou __negrito__
+      s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+           .replace(/__(.+?)__/g,      '<strong>$1</strong>');
+      // *itálico* ou _itálico_
+      s = s.replace(/(^|[^*])\*(?!\s)(.+?)\*(?!\*)/g, '$1<em>$2</em>')
+           .replace(/(^|[^_])_(?!\s)(.+?)_(?!_)/g,     '$1<em>$2</em>');
+      return s;
+    };
+
+    const obs = new MutationObserver(()=>{
+      // se já tem elementos (ex.: <mark>), não converter
+      if(el.querySelector('*')) return;
+      const raw = el.textContent ?? '';
+      const html = mdToHTML(escapeHTML(raw));
+      if(html !== raw){
+        obs.disconnect();
+        el.innerHTML = html; // white-space: pre-wrap preserva espaçamentos/linhas
+        obs.observe(el, { childList:true, characterData:true, subtree:true });
+      }
+    });
+    obs.observe(el, { childList:true, characterData:true, subtree:true });
   })();
 })();
 </script>
