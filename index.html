@@ -730,7 +730,7 @@ mark{ background:#eab30833; border:1px solid #eab30855; border-radius:4px; paddi
 
       <!-- TÍTULO do documento -->
       <div class="row" style="margin-bottom:8px">
-        <input id="criaNome" type="text" placeholder="Título do documento (aparece no [NOME DO DOCUMENTO])" />
+        <input id="criaNome" type="text" placeholder="Título do documento" />
       </div>
 
       <!-- Form dinâmico do modelo selecionado -->
@@ -758,7 +758,7 @@ mark{ background:#eab30833; border:1px solid #eab30855; border-radius:4px; paddi
     <!-- Coluna ESQUERDA (Resultados) -->
     <section class="card col-4 sticky">
       <h2>
-        <span>Pesquisa &amp; Resultados</span>
+        <span>Pesquisa</span>
         <div class="row" style="gap:8px">
           <!-- Lista de documentos (modal) -->
           <button id="btnDocsModalOpen" class="sn-btn" title="Documentos importados" type="button" aria-label="Documentos importados">
@@ -792,7 +792,7 @@ mark{ background:#eab30833; border:1px solid #eab30855; border-radius:4px; paddi
 
         <div class="search-toolbar">
         <input id="searchInput" type="text" placeholder="Digite para pesquisar (dinâmico)..." style="flex:2; min-width:320px" />
-        <label><input id="searchCase" type="checkbox" /> Diferenciar maiúsc./minúsc.</label>
+        <label><input id="searchCase" type="checkbox" />Dif. Maiúsculo e Minúsculo</label>
         <label><input id="searchWhole" type="checkbox" /> Palavra inteira</label>
         <label title="Quando ligado, a busca ignora acentos (ex.: DÚVIDA = DUVIDA).">
   <input id="searchDiacritics" type="checkbox" checked /> Ignorar acentos (á = a)
@@ -816,7 +816,7 @@ mark{ background:#eab30833; border:1px solid #eab30855; border-radius:4px; paddi
     <!-- Coluna DIREITA (Prévia) -->
     <section class="card col-8 preview-card">
       <h2>
-        <span>Prévia &amp; Edição</span>
+        <span>Edição</span>
         <div class="preview-actions" aria-label="Ações da prévia" style="gap:10px">
           <!-- Salvar no Drive (nuvem com seta para cima) -->
           <button id="btnSaveDrive" class="sn-btn" title="Salvar no Drive" type="button" aria-label="Salvar no Drive">
@@ -849,10 +849,10 @@ mark{ background:#eab30833; border:1px solid #eab30855; border-radius:4px; paddi
         </div>
       </h2>
       <div class="preview-head">
-        <span class="preview-title" id="docTitle">(nenhum documento selecionado)</span>
+        <span class="preview-title" id="docTitle">Nenhum documento selecionado</span>
       </div>
 
-      <label class="muted">Prévia (500 antes | 1000 depois do 1º match · clique no resultado para abrir)</label>
+      <label class="muted"></label>
       <div id="searchPreview" aria-label="Prévia do documento"></div>
       <!-- Mantido oculto apenas por compatibilidade -->
       <textarea id="editArea" rows="12" style="display:none; width:100%; margin-top:10px"
